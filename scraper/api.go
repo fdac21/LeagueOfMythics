@@ -8,6 +8,7 @@ import (
 	"io"
 	"log"
 	"net/http"
+	"time"
 
 	"golang.org/x/time/rate"
 )
@@ -85,20 +86,36 @@ func (c *ApiClient) makeRequest(endpoint string) (*http.Response, error) {
 		return nil, err
 	}
 	req.Header.Add("X-Riot-Token", c.apiKey)
-	// Now is when we want to see if we should block the api request and wait
-	if err = c.limiter.Wait(context.Background()); err != nil {
-		return nil, err
+
+	for i := 0; i < 3; i++ {
+		if err = c.limiter.Wait(context.Background()); err != nil {
+			return nil, err
+		}
+		res, err := http.DefaultClient.Do(req)
+		if err != nil {
+			return nil, err
+		}
+		var waitTime time.Duration = 15
+		if i > 0 {
+			waitTime = 60
+		}
+		if res.StatusCode == 429 || res.StatusCode >= 500 {
+			log.Printf("API returned %v\n", res.Status)
+			for name, values := range res.Header {
+				for _, value := range values {
+					log.Printf("%v: %v\n", name, value)
+				}
+			}
+			if i == 2 {
+				break
+			}
+			log.Printf("Waiting %v seconds before trying again\n", waitTime)
+			time.Sleep(waitTime * time.Second)
+		} else {
+			return res, nil
+		}
 	}
-	res, err := http.DefaultClient.Do(req)
-	if err != nil {
-		return nil, err
-	}
-	log.Printf("Limits: %v %v\n", res.Header.Get("X-App-Rate-Limit-Count"),
-		res.Header.Get("X-Method-Rate-Limit-Count"))
-	if res.StatusCode != 200 {
-		return nil, errors.New(res.Status)
-	}
-	return res, err
+	return nil, errors.New("api call failed 3 times in a row")
 }
 
 func (c *ApiClient) GetLeagueEntries(tier Rank, div Division, page int) ([]PlayerId, error) {

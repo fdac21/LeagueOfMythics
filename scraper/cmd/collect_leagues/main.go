@@ -27,24 +27,22 @@ func main() {
 	}
 
 	rds := []rankdiv{
-		{r: lolapi.RankChall, d: lolapi.Div1},
-		{r: lolapi.RankGM, d: lolapi.Div1},
-		{r: lolapi.RankM, d: lolapi.Div1},
-		{r: lolapi.RankD, d: lolapi.Div1},
-		{r: lolapi.RankD, d: lolapi.Div2},
-		{r: lolapi.RankD, d: lolapi.Div3},
-		{r: lolapi.RankD, d: lolapi.Div4},
-		{r: lolapi.RankP, d: lolapi.Div1},
-		{r: lolapi.RankP, d: lolapi.Div2},
-		{r: lolapi.RankP, d: lolapi.Div3},
-		{r: lolapi.RankP, d: lolapi.Div4},
+		{r: lolapi.RankS, d: lolapi.Div1},
+		{r: lolapi.RankS, d: lolapi.Div2},
+		{r: lolapi.RankS, d: lolapi.Div3},
+		{r: lolapi.RankS, d: lolapi.Div4},
 	}
 	for _, rd := range rds {
 		log.Println("Currently on " + lolapi.Ranks[rd.r] + " " + lolapi.Divisions[rd.d])
 		for i := 1; ; i++ {
+			if i%10 == 0 {
+				log.Printf("on page %v\n", i)
+			}
 			players, err := c.GetLeagueEntries(rd.r, rd.d, i)
 			if err != nil {
 				fmt.Fprintln(os.Stderr, err)
+				fmt.Fprintf(os.Stderr, "died on %v%v page %v\n", lolapi.Ranks[rd.r],
+					lolapi.Divisions[rd.d], i)
 				os.Exit(1)
 			}
 			if len(players) == 0 {
