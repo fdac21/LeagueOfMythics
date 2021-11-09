@@ -1,2 +1,5 @@
 .vscode/
 *.log
+*.DS_Store
+analysis/*
+!analysis/*.ipynb
